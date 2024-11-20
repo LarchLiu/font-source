@@ -1,0 +1,9 @@
+{
+  "deploy": {
+    "exclude": [
+      ".DS_Store",
+      "*.pem"
+    ],
+    "entrypoint": "https://jsr.io/@std/http/1.0.7/file_server.ts"
+  }
+}

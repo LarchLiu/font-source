@@ -1,0 +1,28 @@
+{
+  "name": "font-source",
+  "version": "0.0.1",
+  "description": "deno host font source",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc ./index.ts",
+    "start": "node ./index.js",
+    "deploy": "cd dist && deployctl deploy --project font-source",
+    "deploy:prod": "pnpm run deploy --prod"
+  },
+  "keywords": [
+    "font",
+    "cdn"
+  ],
+  "author": "alex.liu",
+  "license": "ISC",
+  "dependencies": {
+    "cn-font-split": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.1",
+    "@types/opentype.js": "^1.3.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
