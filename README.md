@@ -8,5 +8,5 @@ nr deploy:prod // deploy to deno prod
 
 ## Tools
 
-- [cn-font-split](https://github.com/GuiWonder/cn-font-split)
-- [deno](https://deno.land)
+- [cn-font-split](https://github.com/KonghaYao/cn-font-split)
+- [deno](https://deno.dev)
