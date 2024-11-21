@@ -17,7 +17,8 @@
   "author": "alex.liu",
   "license": "ISC",
   "dependencies": {
-    "cn-font-split": "^6.0.1"
+    "cn-font-split": "^6.0.1",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/node": "^22.9.1",

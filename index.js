@@ -37,10 +37,16 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var cn_font_split_1 = require("cn-font-split");
+require("dotenv/config");
 var fs = require("node:fs");
 var path = require("node:path");
+var base_url = process.env.BASE_URL;
 var input = process.argv[2] || 'fonts';
 var output = process.argv[3] || 'dist';
+var CssFileName = 'result';
+var PreviewImageText = '';
+var PreviewImageName = 'preview';
+var ReporterName = 'reporter';
 // Function to get all font files recursively
 function getFontFiles(input, output) {
     var files = [];
@@ -62,7 +68,7 @@ function getFontFiles(input, output) {
             var ext = path.extname(fullPath).toLowerCase();
             if (ext === '.ttf' || ext === '.otf') {
                 // Check if output directory already exists for this font
-                var fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '_');
+                var fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '+');
                 if (!existingOutputDirs.has(fontBaseName)) {
                     files.push(fullPath);
                 }
@@ -74,10 +80,52 @@ function getFontFiles(input, output) {
     }
     return files;
 }
+function getResultFiles(dir, reporterName, cssFileName, previewImageName) {
+    if (reporterName === void 0) { reporterName = 'reporter'; }
+    if (cssFileName === void 0) { cssFileName = 'result'; }
+    if (previewImageName === void 0) { previewImageName = 'preview'; }
+    var files = [];
+    var items = fs.readdirSync(dir);
+    var res = { path: dir.split('/').slice(2).join('/'), reporter: '', css: '', img: '' };
+    for (var _i = 0, items_2 = items; _i < items_2.length; _i++) {
+        var item = items_2[_i];
+        var fullPath = path.format({ dir: '.', base: path.join(dir, item) });
+        var stat = fs.statSync(fullPath);
+        if (stat.isDirectory()) {
+            files.push.apply(files, getResultFiles(fullPath, reporterName, cssFileName));
+        }
+        else {
+            var ext = path.extname(fullPath).toLowerCase();
+            if (ext === '.json') {
+                var fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '+');
+                if (fontBaseName === reporterName) {
+                    res.reporter = fullPath;
+                }
+            }
+            else if (ext === '.css') {
+                var fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '+');
+                if (fontBaseName === cssFileName) {
+                    res.css = "".concat(base_url, "/").concat(fullPath.split('/').slice(2).join('/'));
+                }
+            }
+            else if (ext === '.svg') {
+                var fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '+');
+                if (fontBaseName === previewImageName) {
+                    res.img = "".concat(base_url, "/").concat(fullPath.split('/').slice(2).join('/'));
+                }
+            }
+            if (res.reporter && res.css && res.img) {
+                files.push(res);
+                break;
+            }
+        }
+    }
+    return files;
+}
 // Function to create output directory name
 function createOutputDirName(fontPath) {
     var basename = path.basename(fontPath, path.extname(fontPath));
-    return basename.replace(/\s+/g, '_');
+    return basename.replace(/\s+/g, '+');
 }
 // Process all font files
 function processAllFonts() {
@@ -107,7 +155,11 @@ function processAllFonts() {
                             chunkSize: 60 * 1024,
                             testHTML: true,
                             reporter: true,
-                            previewImage: {},
+                            cssFileName: CssFileName,
+                            previewImage: {
+                                text: PreviewImageText,
+                                name: PreviewImageName
+                            },
                             renameOutputFont: '[hash:10][ext]'
                         })];
                 case 3:
@@ -126,44 +178,43 @@ function processAllFonts() {
         });
     });
 }
-// 遍历 dist 目录及子目录下面的 reporter.json 文件，获取 json 里面的 .message
+// 遍历 dist 目录及子目录下面的 reporter.json result.css 文件，获取 json 里面的 .message
 function getReportMessage(dir) {
     if (dir === void 0) { dir = 'dist'; }
-    var result = [];
-    var files = fs.readdirSync(dir, { withFileTypes: true });
+    var fontFamilyArr = [];
+    var displayObjArr = [];
+    var results = { fontFamily: [], display: [] };
+    var files = getResultFiles(dir, ReporterName, CssFileName, PreviewImageName);
     for (var _i = 0, files_1 = files; _i < files_1.length; _i++) {
         var file = files_1[_i];
-        var filePath_1 = path.format({ dir: '.', base: path.join(dir, file.name) });
-        if (file.isDirectory()) {
-            var reporterFiles = (fs.readdirSync(filePath_1, { withFileTypes: true })).filter(function (f) { return f.isFile() && /\.json$/.test(f.name); });
-            for (var _a = 0, reporterFiles_1 = reporterFiles; _a < reporterFiles_1.length; _a++) {
-                var reporterFile = reporterFiles_1[_a];
-                var reporterFilePath = path.format({ dir: '.', base: path.join(dir, file.name, reporterFile.name) });
-                var data = JSON.parse(fs.readFileSync(reporterFilePath, 'utf8'));
-                var message = data.message.windows || data.message.macintosh;
-                var fontFamily = message.fontFamily.zh || message.fontFamily.en;
-                var obj = { name: fontFamily, value: message.fontFamily.en };
-                result.push(obj);
-            }
-        }
+        var data = JSON.parse(fs.readFileSync(file.reporter, 'utf8'));
+        var message = data.message.windows || data.message.macintosh;
+        var fontFamily = message.fontFamily.zh || message.fontFamily.en;
+        var fontFamilyObj = { name: fontFamily, value: message.fontFamily.en };
+        var displayObj = { name: fontFamily, value: message.fontFamily.en, css: file.css, img: file.img, path: file.path };
+        fontFamilyArr.push(fontFamilyObj);
+        displayObjArr.push(displayObj);
     }
-    console.log(result);
+    results.fontFamily = fontFamilyArr;
+    results.display = displayObjArr;
+    console.log(results);
     var filePath = path.format({ dir: '.', base: path.join(dir, 'fonts.json') });
-    fs.writeFileSync(filePath, JSON.stringify(result, null, 2));
-    return result;
+    fs.writeFileSync(filePath, JSON.stringify(results, null, 2));
+    return fontFamilyArr;
+}
+function copyTemplate() {
+    var template = path.join(__dirname, 'template.html');
+    var distPath = path.join(__dirname, 'dist');
+    fs.copyFileSync(template, path.join(distPath, 'index.html'));
 }
 // Create dist directory if it doesn't exist
 if (!fs.existsSync(output)) {
     fs.mkdirSync(output);
 }
-// else {
-//     console.log('Deleting existing dist directory');
-//     fs.rmSync(output, { recursive: true });
-// }
 // Run the processing
 processAllFonts(input, output)
     .then(function () {
     getReportMessage(output);
+    copyTemplate();
 })
     .catch(console.error);
-// getReportMessage();

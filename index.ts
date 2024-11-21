@@ -1,9 +1,16 @@
 import { fontSplit } from 'cn-font-split';
+import 'dotenv/config'
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+const base_url = process.env.BASE_URL;
 const input = process.argv[2] || 'fonts';
 const output = process.argv[3] || 'dist';
+
+const CssFileName = 'result';
+const PreviewImageText = '';
+const PreviewImageName = 'preview';
+const ReporterName = 'reporter';
 
 // Function to get all font files recursively
 function getFontFiles(input: string, output: string): string[] {
@@ -29,7 +36,7 @@ function getFontFiles(input: string, output: string): string[] {
             const ext = path.extname(fullPath).toLowerCase();
             if (ext === '.ttf' || ext === '.otf') {
                 // Check if output directory already exists for this font
-                const fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '_');
+                const fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '+');
                 if (!existingOutputDirs.has(fontBaseName)) {
                     files.push(fullPath);
                 } else {
@@ -41,11 +48,57 @@ function getFontFiles(input: string, output: string): string[] {
     
     return files;
 }
+interface Result {
+  path: string;
+  reporter: string;
+  css: string;
+  img: string;
+}
+function getResultFiles(dir: string, reporterName: string = 'reporter', cssFileName: string = 'result', previewImageName: string = 'preview'): Result[] {
+  const files: Result[] = [];
+  const items = fs.readdirSync(dir);
+  const res: Result = {path: dir.split('/').slice(2).join('/'), reporter: '', css: '', img: ''};
+  
+  for (const item of items) {
+      const fullPath = path.format({ dir: '.', base: path.join(dir, item) });
+      const stat = fs.statSync(fullPath);
+      
+      if (stat.isDirectory()) {
+          files.push(...getResultFiles(fullPath, reporterName, cssFileName));
+      } else {
+          const ext = path.extname(fullPath).toLowerCase();
+          if (ext === '.json') {
+              const fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '+');
+              if (fontBaseName === reporterName) {
+                res.reporter = fullPath;
+              }
+          }
+          else if (ext === '.css') {
+              const fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '+');
+              if (fontBaseName === cssFileName) {
+                res.css = `${base_url}/${fullPath.split('/').slice(2).join('/')}`;
+              }
+          }
+          else if (ext === '.svg') {
+              const fontBaseName = path.basename(fullPath, ext).replace(/\s+/g, '+');
+              if (fontBaseName === previewImageName) {
+                res.img = `${base_url}/${fullPath.split('/').slice(2).join('/')}`;
+              }
+          }
+          if (res.reporter && res.css && res.img) {
+            files.push(res);
+            break;
+          }
+      }
+  }
+
+  return files;
+}
 
 // Function to create output directory name
 function createOutputDirName(fontPath: string): string {
     const basename = path.basename(fontPath, path.extname(fontPath));
-    return basename.replace(/\s+/g, '_');
+    return basename.replace(/\s+/g, '+');
 }
 
 // Process all font files
@@ -66,7 +119,11 @@ async function processAllFonts(input: string = 'fonts', output: string = 'dist')
                 chunkSize: 60 * 1024,
                 testHTML: true,
                 reporter: true,
-                previewImage: {},
+                cssFileName: CssFileName,
+                previewImage: {
+                  text: PreviewImageText,
+                  name: PreviewImageName
+                },
                 renameOutputFont: '[hash:10][ext]'
             });
             console.log(`Successfully processed: ${fontFile}`);
@@ -76,43 +133,44 @@ async function processAllFonts(input: string = 'fonts', output: string = 'dist')
     }
 }
 
-// 遍历 dist 目录及子目录下面的 reporter.json 文件，获取 json 里面的 .message
+// 遍历 dist 目录及子目录下面的 reporter.json result.css 文件，获取 json 里面的 .message
 function getReportMessage(dir: string = 'dist') {
-    const result: any[] = [];
-    const files = fs.readdirSync(dir, { withFileTypes: true });
+    const fontFamilyArr: any[] = [];
+    const displayObjArr: any[] = [];
+    const results: { fontFamily: any[]; display: any[] } = {fontFamily: [], display: []};
+    const files = getResultFiles(dir, ReporterName, CssFileName, PreviewImageName);
     for (const file of files) {
-        const filePath = path.format({ dir: '.', base: path.join(dir, file.name) });
-        if (file.isDirectory()) {
-            const reporterFiles = (fs.readdirSync(filePath, { withFileTypes: true })).filter(f => f.isFile() && /\.json$/.test(f.name));
-            for (const reporterFile of reporterFiles) {
-                const reporterFilePath = path.format({ dir: '.', base: path.join(dir, file.name, reporterFile.name) });
-                const data = JSON.parse(fs.readFileSync(reporterFilePath, 'utf8'));
-                const message = data.message.windows || data.message.macintosh;
-                const fontFamily = message.fontFamily.zh || message.fontFamily.en;
-                const obj = { name: fontFamily, value: message.fontFamily.en };
-                result.push(obj);
-            }
-        }
+      const data = JSON.parse(fs.readFileSync(file.reporter, 'utf8'));
+      const message = data.message.windows || data.message.macintosh;
+      const fontFamily = message.fontFamily.zh || message.fontFamily.en;
+      const fontFamilyObj = { name: fontFamily, value: message.fontFamily.en };
+      const displayObj = { name: fontFamily, value: message.fontFamily.en, css: file.css, img: file.img, path: file.path };
+      fontFamilyArr.push(fontFamilyObj);
+      displayObjArr.push(displayObj);
     }
-    console.log(result);
+    results.fontFamily = fontFamilyArr;
+    results.display = displayObjArr;
+    console.log(results);
     const filePath = path.format({ dir: '.', base: path.join(dir, 'fonts.json') });
-    fs.writeFileSync(filePath, JSON.stringify(result, null, 2));
-    return result;
+    fs.writeFileSync(filePath, JSON.stringify(results, null, 2));
+    return fontFamilyArr;
+}
+
+function copyTemplate() {
+    const template = path.join(__dirname, 'template.html');
+    const distPath = path.join(__dirname, 'dist');
+    fs.copyFileSync(template, path.join(distPath, 'index.html'));
 }
 
 // Create dist directory if it doesn't exist
 if (!fs.existsSync(output)) {
     fs.mkdirSync(output);
 }
-// else {
-//     console.log('Deleting existing dist directory');
-//     fs.rmSync(output, { recursive: true });
-// }
 
 // Run the processing
 processAllFonts(input, output)
 .then(() => {
   getReportMessage(output);
+  copyTemplate();
 })
 .catch(console.error);
-// getReportMessage();

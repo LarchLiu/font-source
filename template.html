@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title></title>
+    </head>
+
+    <style>
+        body {
+            overflow-wrap: break-word;
+            font-size: 18px;
+        }
+        h3 {
+            font-family:
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                'Segoe UI',
+                Roboto,
+                Oxygen,
+                Ubuntu,
+                Cantarell,
+                'Open Sans',
+                'Helvetica Neue',
+                sans-serif;
+            font-weight: normal;
+        }
+    </style>
+
+    <body></body>
+    <script type="module">
+        import {
+            createSignal,
+            createResource,
+            onMount,
+            createEffect,
+        } from 'https://esm.sh/solid-js';
+        import html from 'https://esm.sh/solid-js/html';
+
+        function getContent(data) {
+            return html`<div style="display:flex;flex-wrap:wrap;gap: 0.5rem;justify-content: space-between;">
+            ${data.map(({name, img, path}) => {
+                const index = `${window.location.origin}/${path}`;
+                return html`<a href="${index}">
+                <div style="display:flex;flex-direction: column;border: 2px solid #636161;border-radius: 4px;">
+                    <div><img width="300px" height="300px" src="${img}" /></div>
+                    <div style="text-align: center;margin-bottom: 10px;">${name}</div>
+                </div>
+                </a>`;
+            })}
+        </div>`;
+        }
+
+        const App = () => {
+            const [data] = createResource(() =>
+                fetch('./fonts.json')
+                    .then((res) => res.json())
+                    .then((res) => {
+                        res = res.display;
+                        return res;
+                    }),
+            );
+
+            const content = () =>
+                html` <div>
+                        ${getContent(data())}
+                    </div>`;
+ 
+            return html`<div style="padding: 50px">
+                ${() => (data.loading ? `加载中...` : content())}
+            </div>`;
+        };
+
+        import { render } from 'https://esm.sh/solid-js/web';
+        render(App, document.body);
+    </script>
+</html>
