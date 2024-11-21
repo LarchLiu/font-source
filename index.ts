@@ -57,7 +57,7 @@ interface Result {
 function getResultFiles(dir: string, reporterName: string = 'reporter', cssFileName: string = 'result', previewImageName: string = 'preview'): Result[] {
   const files: Result[] = [];
   const items = fs.readdirSync(dir);
-  const res: Result = {path: dir.split('/').slice(2).join('/'), reporter: '', css: '', img: ''};
+  const res: Result = {path: `/${dir.split('/').slice(2).join('/')}`, reporter: '', css: '', img: ''};
   
   for (const item of items) {
       const fullPath = path.format({ dir: '.', base: path.join(dir, item) });

@@ -86,7 +86,7 @@ function getResultFiles(dir, reporterName, cssFileName, previewImageName) {
     if (previewImageName === void 0) { previewImageName = 'preview'; }
     var files = [];
     var items = fs.readdirSync(dir);
-    var res = { path: dir.split('/').slice(2).join('/'), reporter: '', css: '', img: '' };
+    var res = { path: "/".concat(dir.split('/').slice(2).join('/')), reporter: '', css: '', img: '' };
     for (var _i = 0, items_2 = items; _i < items_2.length; _i++) {
         var item = items_2[_i];
         var fullPath = path.format({ dir: '.', base: path.join(dir, item) });

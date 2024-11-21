@@ -42,8 +42,7 @@
         function getContent(data) {
             return html`<div style="display:flex;flex-wrap:wrap;gap: 0.5rem;justify-content: space-between;">
             ${data.map(({name, img, path}) => {
-                const index = `${window.location.origin}/${path}`;
-                return html`<a href="${index}">
+                return html`<a href="${path}">
                 <div style="display:flex;flex-direction: column;border: 2px solid #636161;border-radius: 4px;">
                     <div><img width="300px" height="300px" src="${img}" /></div>
                     <div style="text-align: center;margin-bottom: 10px;">${name}</div>
