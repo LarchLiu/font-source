@@ -7,9 +7,9 @@ const base_url = process.env.BASE_URL;
 const input = process.argv[2] || 'fonts';
 const output = process.argv[3] || 'dist';
 
-const CssFileName = 'result';
-const PreviewImageText = '';
-const PreviewImageName = 'preview';
+const CssFileName = process.env.CSS_FILE_NAME || 'result';
+const PreviewImageText = process.env.PREVIEW_IMAGE_TEXT || '中文网字计划\nThe Project For Web';
+const PreviewImageName = process.env.PREVIEW_IMAGE_NAME || 'preview';
 const ReporterName = 'reporter';
 
 // Function to get all font files recursively

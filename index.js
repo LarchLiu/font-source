@@ -43,9 +43,9 @@ var path = require("node:path");
 var base_url = process.env.BASE_URL;
 var input = process.argv[2] || 'fonts';
 var output = process.argv[3] || 'dist';
-var CssFileName = 'result';
-var PreviewImageText = '';
-var PreviewImageName = 'preview';
+var CssFileName = process.env.CSS_FILE_NAME || 'result';
+var PreviewImageText = process.env.PREVIEW_IMAGE_TEXT || '中文网字计划\nThe Project For Web';
+var PreviewImageName = process.env.PREVIEW_IMAGE_NAME || 'preview';
 var ReporterName = 'reporter';
 // Function to get all font files recursively
 function getFontFiles(input, output) {
